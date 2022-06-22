@@ -30,14 +30,18 @@ namespace truYumRestaurant
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        
+
         public async void GetMenuList()
         {
+            string token = GenerateJSONWebToken();
             List<MenuItem> menus = new List<MenuItem>();
             string apiUrl = "http://20.237.16.241/";
             using (var client = new HttpClient() )
             {
                 client.BaseAddress = new Uri(apiUrl);
-                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 HttpResponseMessage httpResponseMessage = await client.GetAsync("api/menuitem");
                 if(httpResponseMessage.StatusCode == HttpStatusCode.OK)
                 {
@@ -53,22 +57,23 @@ namespace truYumRestaurant
 
         public async void OrderItem(int Id)
         {
+            string token = GenerateJSONWebToken();
             Cart order = new Cart();
             string apiUrl = "http://20.241.177.87/";
             using (var client = new HttpClient())
             {
                 client.BaseAddress = new Uri(apiUrl);
-                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 string json = JsonConvert.SerializeObject(Id);
                 StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
                 HttpResponseMessage httpResponseMessage = await client.PostAsync($"api/order/{Id}", content);
-                Console.WriteLine(httpResponseMessage.StatusCode);
                 if (httpResponseMessage.StatusCode == HttpStatusCode.OK)
                 {
                     string json1 = await httpResponseMessage.Content.ReadAsStringAsync();
                     order = JsonConvert.DeserializeObject<Cart>(json1);
                 }
-                else
+                else if(httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
                 {
                     Console.WriteLine("Incorrect menu item id chosen. Please choose the appropriate Id");
                     return;
